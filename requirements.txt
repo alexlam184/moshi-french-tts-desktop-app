@@ -1,0 +1,5 @@
+PySide6>=6.6,<7
+# Optional local neural TTS. The first Supertonic playback downloads its model (~400 MB).
+supertonic
+# Installs this project too, creating the french-learning-app command used by macOS Services.
+-e .

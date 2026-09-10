@@ -1,0 +1,28 @@
+/* Documentation tokens; the PySide6 sRGB equivalents live in ui/theme.py. */
+:root {
+  --color-paper: oklch(97% 0.008 255);
+  --color-paper-2: oklch(99% 0.004 255);
+  --color-ink: oklch(22% 0.025 255);
+  --color-ink-2: oklch(48% 0.025 255);
+  --color-rule: oklch(87% 0.018 255);
+  --color-accent: oklch(48% 0.13 255);
+  --color-accent-ink: oklch(99% 0.004 255);
+  --color-focus: oklch(48% 0.13 255);
+  --font-display: "Avenir Next", "Segoe UI", sans-serif;
+  --font-body: "Avenir Next", "Segoe UI", sans-serif;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5625rem;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-short: 220ms;
+  --radius-card: 9px;
+  --radius-input: 7px;
+}

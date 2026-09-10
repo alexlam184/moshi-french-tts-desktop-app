@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "moshi-french-tts"
+version = "0.1.0"
+description = "A cross-platform PySide6 French listening and text-to-speech app"
+requires-python = ">=3.11"
+dependencies = ["PySide6>=6.6,<7"]
+
+[project.scripts]
+moshi-french-tts = "french_learning_app.app:main"
+# Backward-compatible command for existing editable installations.
+french-learning-app = "french_learning_app.app:main"
+
+[tool.setuptools.packages.find]
+include = ["french_learning_app*"]
+
+[tool.setuptools.package-data]
+french_learning_app = ["assets/*.png"]
