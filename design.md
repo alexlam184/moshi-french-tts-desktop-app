@@ -4,7 +4,12 @@ A consistent desktop design system for the application.
 
 ## Genre
 
-Modern-minimal: calm, practical, and study-focused.
+Editorial workbench based on the user's September 13 screenshot: pale indigo
+surfaces, cobalt actions, serif headings, and a graph-paper text pane.
+The native desktop window retains its original playback and data services.
+Display uses Baskerville / Georgia; body uses the platform sans-serif stack.
+The header provides Guide, History, and Voice models. History opens a dialog.
+Audio cache size reports measured disk usage, not a fictional memory limit.
 
 ## Macrostructure family
 

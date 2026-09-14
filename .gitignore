@@ -18,6 +18,7 @@ dist/
 
 # Local app data and generated audio
 audio_cache/
+/models/
 *.wav
 *.aiff
 *.mp3

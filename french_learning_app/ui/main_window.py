@@ -16,6 +16,7 @@ from ..services.tts import OnlineTTSEngine, PiperEngine, SupertonicEngine, Syste
 from .sentence_card import SentenceCard
 from .settings_dialog import SettingsDialog
 from .theme import APP_STYLESHEET
+from .grid_panel import GridPanel
 
 
 class SynthesisSignals(QObject):
@@ -52,7 +53,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Moshi French TTS")
-        self.resize(900, 720)
+        self.resize(1440, 900)
         data_dir = app_data_dir()
         self.settings_store = SettingsStore(data_dir)
         self.settings = self.settings_store.load()
@@ -107,43 +108,55 @@ class MainWindow(QMainWindow):
         root.setStyleSheet(APP_STYLESHEET)
         layout = QVBoxLayout(root)
         self.root_layout = layout
-        layout.setContentsMargins(24, 18, 24, 22)
-        layout.setSpacing(16)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
         self.header_layout = QBoxLayout(QBoxLayout.LeftToRight)
         title_stack = QVBoxLayout()
         title_stack.setSpacing(2)
-        heading = QLabel("Moshi French TTS")
+        heading = QLabel("∿  Moshi French TTS")
         heading.setObjectName("brandTitle")
         heading.setWordWrap(True)
         subtitle = QLabel("Turn a passage into focused, sentence-by-sentence audio.")
         subtitle.setObjectName("brandSubtitle")
         subtitle.setWordWrap(True)
         title_stack.addWidget(heading)
-        title_stack.addWidget(subtitle)
-        self.settings_button = QPushButton("Settings")
+        subtitle.hide()
+        self.settings_button = QPushButton("Voice models")
         self.settings_button.setObjectName("settingsButton")
         self.settings_button.setToolTip("Configure local voices and playback defaults")
         self.settings_button.clicked.connect(self.open_settings)
         self.header_layout.addLayout(title_stack, 1)
+        self.header_layout.setContentsMargins(20, 16, 20, 16)
+        guide = QPushButton("Guide")
+        guide.clicked.connect(self.show_guide)
+        history_button = QPushButton("History")
+        history_button.clicked.connect(self.show_history)
+        self.header_layout.addWidget(guide)
+        self.header_layout.addWidget(history_button)
         self.header_layout.addWidget(self.settings_button, 0, Qt.AlignTop)
         layout.addLayout(self.header_layout)
 
         self.workspace = QSplitter(Qt.Horizontal)
         self.workspace.setChildrenCollapsible(False)
 
-        self.input_panel = QFrame()
+        self.input_panel = GridPanel()
         self.input_panel.setObjectName("workspacePanel")
         input_layout = QVBoxLayout(self.input_panel)
         input_layout.setContentsMargins(18, 18, 18, 18)
         input_layout.setSpacing(10)
-        input_label = QLabel("FRENCH TEXT")
+        input_label = QLabel("01 · TEXT")
         input_label.setObjectName("sectionLabel")
-        input_title = QLabel("What do you want to practise?")
-        input_title.setObjectName("panelTitle")
+        input_title = QLabel("What would you\nlike to hear?")
+        input_title.setObjectName("inputTitle")
         input_title.setWordWrap(True)
         input_layout.addWidget(input_label)
         input_layout.addWidget(input_title)
+        input_note = QLabel("Paste French text. Practise at your own pace.")
+        input_note.setWordWrap(True)
+        input_note.setObjectName("helperText")
+        input_layout.addWidget(input_note)
+        input_layout.addWidget(QLabel("French Text"))
         self.input = QTextEdit()
         self.input.setPlaceholderText("Bonjour ! Collez un texte français ici…")
         self.input.setMinimumHeight(180)
@@ -152,20 +165,28 @@ class MainWindow(QMainWindow):
         self.input_stats = QLabel("0 characters")
         self.input_stats.setObjectName("inputStats")
         input_layout.addWidget(self.input_stats)
-        process = QPushButton("Create sentence cards")
+        process = QPushButton("♫  Prepare listening")
         process.setObjectName("primaryButton")
         process.setToolTip("Split the French text into listening cards")
         process.clicked.connect(self.process_text)
         input_layout.addWidget(process)
+        clear_row = QHBoxLayout()
+        clear_form = QPushButton("Clear form")
+        clear_form.clicked.connect(self.clear_form)
+        clear_cache = QPushButton("Clear cache")
+        clear_cache.clicked.connect(self.clear_audio_cache)
+        clear_row.addWidget(clear_form)
+        clear_row.addWidget(clear_cache)
+        input_layout.addLayout(clear_row)
         history_label = QLabel("RECENT TEXTS")
         history_label.setObjectName("sectionLabel")
-        input_layout.addWidget(history_label)
+        history_label.hide()
         self.history_list = QListWidget()
         self.history_list.setObjectName("historyList")
         self.history_list.setMaximumHeight(140)
         self.history_list.setToolTip("Choose a saved text to put it back in the editor")
         self.history_list.itemClicked.connect(self.restore_history_item)
-        input_layout.addWidget(self.history_list)
+        self.history_list.hide()
         self.refresh_history()
 
         self.audio_panel = QFrame()
@@ -173,13 +194,22 @@ class MainWindow(QMainWindow):
         audio_layout = QVBoxLayout(self.audio_panel)
         audio_layout.setContentsMargins(18, 18, 18, 18)
         audio_layout.setSpacing(10)
-        audio_label = QLabel("AUDIO PRACTICE")
+        audio_label = QLabel("02 · LISTEN")
         audio_label.setObjectName("sectionLabel")
-        audio_title = QLabel("Listen one sentence at a time")
+        audio_title = QLabel("Sentence Practice")
         audio_title.setObjectName("panelTitle")
         audio_title.setWordWrap(True)
         audio_layout.addWidget(audio_label)
         audio_layout.addWidget(audio_title)
+        self.cache_summary = QLabel()
+        self.cache_summary.setObjectName("inputStats")
+        self.cache_summary.setAlignment(Qt.AlignRight)
+        audio_layout.addWidget(self.cache_summary)
+        self.cache_timer = QTimer(self)
+        self.cache_timer.setInterval(2000)
+        self.cache_timer.timeout.connect(self.refresh_cache_summary)
+        self.cache_timer.start()
+        self.refresh_cache_summary()
 
         self.controls_layout = QBoxLayout(QBoxLayout.LeftToRight)
         self.controls_layout.setSpacing(10)
@@ -231,7 +261,7 @@ class MainWindow(QMainWindow):
         self.controls_layout.addWidget(engine_container, 3)
         self.controls_layout.addWidget(voice_container, 2)
         self.controls_layout.addWidget(speed_container, 1)
-        audio_layout.addLayout(self.controls_layout)
+        self.player_bar = QBoxLayout(QBoxLayout.LeftToRight)
 
         self.transport_layout = QBoxLayout(QBoxLayout.LeftToRight)
         self.transport_layout.setSpacing(8)
@@ -264,18 +294,23 @@ class MainWindow(QMainWindow):
         self.transport_layout.addWidget(self.play_all)
         self.transport_layout.addWidget(self.forward_button)
         self.transport_layout.addWidget(self.stop_button)
-        audio_layout.addLayout(self.transport_layout)
+        self.player_bar.addLayout(self.transport_layout)
+        self.player_bar.addLayout(self.controls_layout, 1)
+        audio_layout.addLayout(self.player_bar)
         helper = QLabel("The current word is highlighted during playback. Hover a blue word to repeat it; move away to continue the sentence.")
         helper.setObjectName("helperText")
         helper.setWordWrap(True)
-        audio_layout.addWidget(helper)
+        helper.hide()
+        self.sentence_count_label = QLabel("READY · 0 SENTENCES")
+        self.sentence_count_label.setObjectName("sectionLabel")
+        audio_layout.addWidget(self.sentence_count_label)
         self.status = QLabel("Ready. System speech works without an API key.")
         self.status.setObjectName("statusMessage")
         self.status.setWordWrap(True)
         audio_layout.addWidget(self.status)
         self.cards_layout = QVBoxLayout()
         self.cards_layout.setContentsMargins(0, 0, 0, 0)
-        self.cards_layout.setSpacing(10)
+        self.cards_layout.setSpacing(0)
         self.cards_layout.setAlignment(Qt.AlignTop)
         cards_widget = QWidget()
         cards_widget.setObjectName("cardsViewport")
@@ -287,9 +322,13 @@ class MainWindow(QMainWindow):
 
         self.workspace.addWidget(self.input_panel)
         self.workspace.addWidget(self.audio_panel)
-        self.workspace.setStretchFactor(0, 5)
-        self.workspace.setStretchFactor(1, 6)
+        self.workspace.setStretchFactor(0, 3)
+        self.workspace.setStretchFactor(1, 7)
         layout.addWidget(self.workspace, 1)
+        footer = QLabel("MOSHI FRENCH TTS · PERSONAL LISTENING PRACTICE")
+        footer.setObjectName("footer")
+        footer.setWordWrap(True)
+        layout.addWidget(footer)
         self.page_scroll = QScrollArea()
         self.page_scroll.setFrameShape(QFrame.NoFrame)
         self.page_scroll.setWidgetResizable(True)
@@ -312,18 +351,19 @@ class MainWindow(QMainWindow):
                 self.input_panel.setMinimumHeight(0)
                 self.audio_panel.setMinimumHeight(0)
                 self.workspace.setOrientation(Qt.Horizontal)
-                self.workspace.setSizes([480, 560])
+                self.workspace.setSizes([420, 980])
             else:
                 self.input_panel.setMinimumHeight(460)
                 self.audio_panel.setMinimumHeight(520)
                 self.workspace.setOrientation(Qt.Vertical)
                 self.workspace.setSizes([330, 520])
         compact = width < 520
-        self.root_layout.setContentsMargins(
-            12 if compact else 24,
-            14 if compact else 18,
-            12 if compact else 24,
-            16 if compact else 22,
+        self.root_layout.setContentsMargins(0, 0, 0, 0)
+        self.input_panel.layout().setContentsMargins(
+            12 if compact else 18, 18, 12 if compact else 18, 18
+        )
+        self.player_bar.setDirection(
+            QBoxLayout.LeftToRight if width >= 1250 else QBoxLayout.TopToBottom
         )
         self.header_layout.setDirection(
             QBoxLayout.TopToBottom if compact else QBoxLayout.LeftToRight
@@ -335,6 +375,59 @@ class MainWindow(QMainWindow):
             QBoxLayout.TopToBottom if compact else QBoxLayout.LeftToRight
         )
         self.transport_layout.setDirection(QBoxLayout.LeftToRight)
+
+    def show_guide(self):
+        QMessageBox.information(self, "Listening guide",
+            "Paste French text and choose Prepare listening.\n\n"
+            "Use Play to listen to all sentences, or a row's play button for one sentence.\n\n"
+            "Single-click a word to hear it. Double-click to start from that word. "
+            "Hover during playback to repeat a word; move away to continue.\n\n"
+            "Expand the arrow to see IPA and meaning when available.")
+
+    def show_history(self):
+        from PySide6.QtWidgets import QDialog
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Recent texts")
+        dialog.resize(520, 360)
+        layout = QVBoxLayout(dialog)
+        recent = QListWidget()
+        for row in range(self.history_list.count()):
+            recent.addItem(self.history_list.item(row).clone())
+        def restore(item):
+            self.restore_history_item(item)
+            dialog.accept()
+        recent.itemClicked.connect(restore)
+        layout.addWidget(QLabel("Choose a text to restore it to the editor."))
+        layout.addWidget(recent)
+        dialog.exec()
+
+    def clear_form(self):
+        self.stop_playback()
+        self.input.clear()
+        self.current_sentences = []
+        self.current_cards = []
+        while self.cards_layout.count():
+            widget = self.cards_layout.takeAt(0).widget()
+            if widget:
+                widget.deleteLater()
+        self.sentence_count_label.setText("READY · 0 SENTENCES")
+        self.status.setText("Ready. Paste French text to begin.")
+
+    def refresh_cache_summary(self):
+        try:
+            size = sum(p.stat().st_size for p in self.cache.directory.iterdir() if p.is_file())
+            self.cache_summary.setText(f"Audio cached on disk: {size / 1048576:.1f} MB")
+        except OSError:
+            self.cache_summary.setText("Audio cache unavailable")
+        if not hasattr(self, "voice"):
+            return
+        engine = self._engine_instance()
+        for card in self.current_cards:
+            path = self.cache.path_for(
+                f"{engine.name}|{self.voice.currentText()}", card.text_from(0),
+                float(self.speed.currentData()), suffix=engine.cache_suffix,
+            )
+            card.cache_badge.setVisible(path.is_file() and self.width() >= 900)
 
     def _update_input_stats(self):
         count = len(self.input.toPlainText())
@@ -412,6 +505,7 @@ class MainWindow(QMainWindow):
             if item.widget():
                 item.widget().deleteLater()
         self.current_sentences = sentences
+        self.sentence_count_label.setText(f"READY · {len(sentences)} SENTENCES")
         self.current_cards = []
         for raw in sentences:
             card = SentenceCard(Sentence(raw))

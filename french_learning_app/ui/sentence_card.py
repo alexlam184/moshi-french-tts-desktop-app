@@ -167,11 +167,15 @@ class SentenceCard(QFrame):
         details_layout.addWidget(self.translation)
         self.details.hide()
         self.top_row = QHBoxLayout()
-        self.top_row.setContentsMargins(4, 2, 4, 2)
+        self.top_row.setContentsMargins(4, 18, 4, 18)
         self.top_row.setSpacing(8)
         self.top_row.setAlignment(Qt.AlignVCenter)
         self.top_row.addWidget(self.details_toggle, 0, Qt.AlignVCenter)
         self.top_row.addWidget(self.title, 1, Qt.AlignVCenter)
+        self.cache_badge = QLabel("● CACHED")
+        self.cache_badge.setObjectName("cacheBadge")
+        self.cache_badge.hide()
+        self.top_row.addWidget(self.cache_badge, 0, Qt.AlignVCenter)
         self.top_row.addWidget(self.play_button, 0, Qt.AlignVCenter)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
@@ -240,7 +244,7 @@ class SentenceCard(QFrame):
         # the sentence internally, but hide its blue highlight until hover ends.
         if is_speaking and self.hover_index is None:
             return f"background-color:{ACTIVE_WORD};color:{INK};font-weight:700;"
-        return f"color:{ACCENT};"
+        return f"color:{INK};"
 
     def _hover_word(self, index: int):
         if 0 <= index < len(self.words):

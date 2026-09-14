@@ -195,3 +195,38 @@ MUTED = "#5a687b"
 ACTIVE_WORD = "#d9e9fb"
 # Warm amber is deliberately distinct from the blue speaking highlight.
 HOVER_WORD = "#ffe2a8"
+
+# Hallmark · Workbench · user reference · P4 H4 E4 S5 R5 V4
+# Qt does not implement CSS variables; interpolate shared sRGB tokens here.
+PAPER = "#f4f5fc"
+LISTEN_PAPER = "#e7ebf5"
+GRID = "#dbe1f0"
+RULE = "#c3c9d8"
+COBALT = "#2e41d3"
+DISPLAY = '"Baskerville", "Georgia"'
+APP_STYLESHEET += f"""
+QWidget#appRoot {{ background: {PAPER}; color: {INK}; }}
+QLabel#brandTitle {{ font-family: {DISPLAY}; font-size: 29px; font-weight: 400; }}
+QLabel#inputTitle {{ font-family: {DISPLAY}; font-size: 46px; font-weight: 400; color: {INK}; }}
+QLabel#panelTitle {{ font-family: {DISPLAY}; font-size: 32px; font-weight: 400; }}
+QLabel#sectionLabel {{ color: {MUTED}; font-family: "Menlo", "Consolas"; padding: 10px 0; }}
+QFrame#workspacePanel {{ background: {LISTEN_PAPER}; border: 0; }}
+QTextEdit, QComboBox, QLineEdit, QDoubleSpinBox {{
+    background: {PAPER}; color: {INK}; border-color: {RULE}; border-radius: 9px;
+}}
+QTextEdit {{ padding: 16px; font-size: 18px; }}
+QPushButton {{ background: {PAPER}; border-color: {RULE}; font-weight: 400; }}
+QPushButton#primaryButton {{ background: {COBALT}; border-color: {COBALT}; }}
+QPushButton#primaryButton:hover {{ background: {ACCENT}; }}
+QPushButton#playAllButton {{ background: {COBALT}; border-color: {COBALT}; }}
+QPushButton#transportButton {{ border: 0; background: transparent; }}
+QPushButton#transportButton:disabled {{ color: {RULE}; }}
+QPushButton#sentencePlay {{ background: transparent; border: 0; color: {COBALT}; }}
+QPushButton#sentencePlay[playbackState="playing"] {{ background: {COBALT}; color: {PAPER}; }}
+QFrame#sentenceCard {{ border: 0; border-bottom: 1px solid {RULE}; border-radius: 0; }}
+QFrame#sentenceCard[playbackState="playing"] {{ background: {PAPER}; }}
+QLabel#statusMessage {{ background: {PAPER}; padding: 18px; border: 1px solid {RULE}; border-radius: 8px; }}
+QLabel#footer {{ padding: 16px; border-top: 1px solid {RULE}; color: {MUTED}; font-family: "Menlo", "Consolas"; font-size: 11px; }}
+QLabel#cacheBadge {{ color: {ACCENT}; font-size: 11px; font-weight: 700; }}
+QSplitter::handle {{ background: {RULE}; width: 1px; height: 1px; }}
+"""

@@ -8,7 +8,10 @@
   --color-accent: oklch(48% 0.13 255);
   --color-accent-ink: oklch(99% 0.004 255);
   --color-focus: oklch(48% 0.13 255);
-  --font-display: "Avenir Next", "Segoe UI", sans-serif;
+  --font-display: "Baskerville", "Georgia", serif;
+  --color-workspace: #e7ebf5;
+  --color-grid: #dbe1f0;
+  --color-action: #2e41d3;
   --font-body: "Avenir Next", "Segoe UI", sans-serif;
   --space-xs: 0.5rem;
   --space-sm: 0.75rem;
