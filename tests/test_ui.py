@@ -46,6 +46,13 @@ class SentenceInteractionTests(unittest.TestCase):
         window = MainWindow()
         self.assertEqual(window.windowTitle(), "Moshi French TTS")
 
+    def test_sentence_summary_counts_distinct_sentences(self):
+        window = MainWindow()
+        window.current_sentences = ["Bonjour.", " bonjour. ", "Bonsoir !"]
+        window._update_sentence_summary()
+
+        self.assertEqual(window.sentence_summary.text(), "3 sentence cards · 2 different sentences")
+
     def test_word_progress_reaches_first_and_last_words(self):
         card = SentenceCard(Sentence("Bonjour tout le monde."))
         self.assertEqual(MainWindow._word_index_for_progress(card, 0, 0.0), 0)

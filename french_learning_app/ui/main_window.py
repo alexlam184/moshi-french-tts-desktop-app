@@ -180,6 +180,12 @@ class MainWindow(QMainWindow):
         audio_title.setWordWrap(True)
         audio_layout.addWidget(audio_label)
         audio_layout.addWidget(audio_title)
+        self.sentence_summary = QLabel("0 sentence cards · 0 different sentences")
+        self.sentence_summary.setObjectName("inputStats")
+        self.sentence_summary.setToolTip(
+            "Number of sentence cards and distinct sentences in the current practice set"
+        )
+        audio_layout.addWidget(self.sentence_summary)
 
         self.controls_layout = QBoxLayout(QBoxLayout.LeftToRight)
         self.controls_layout.setSpacing(10)
@@ -340,6 +346,19 @@ class MainWindow(QMainWindow):
         count = len(self.input.toPlainText())
         self.input_stats.setText(f"{count:,} character{'s' if count != 1 else ''}")
 
+    @staticmethod
+    def _distinct_sentence_count(sentences: list[str]) -> int:
+        """Count sentences once, ignoring capitalization and extra spacing."""
+        normalized = {" ".join(sentence.split()).casefold() for sentence in sentences}
+        return len(normalized - {""})
+
+    def _update_sentence_summary(self):
+        total = len(self.current_sentences)
+        distinct = self._distinct_sentence_count(self.current_sentences)
+        total_label = f"{total} sentence card{'s' if total != 1 else ''}"
+        distinct_label = f"{distinct} different sentence{'s' if distinct != 1 else ''}"
+        self.sentence_summary.setText(f"{total_label} · {distinct_label}")
+
     def refresh_history(self):
         self.history_list.clear()
         for source_text, _created_at in self.history.recent(HistoryStore.MAX_ITEMS):
@@ -412,6 +431,7 @@ class MainWindow(QMainWindow):
             if item.widget():
                 item.widget().deleteLater()
         self.current_sentences = sentences
+        self._update_sentence_summary()
         self.current_cards = []
         for raw in sentences:
             card = SentenceCard(Sentence(raw))
