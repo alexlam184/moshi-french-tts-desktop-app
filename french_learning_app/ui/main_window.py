@@ -382,20 +382,12 @@ class MainWindow(QMainWindow):
             "Expand the arrow to see IPA and meaning when available.")
 
     def show_history(self):
-        from PySide6.QtWidgets import QDialog
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Recent texts")
-        dialog.resize(520, 360)
-        layout = QVBoxLayout(dialog)
-        recent = QListWidget()
-        for row in range(self.history_list.count()):
-            recent.addItem(self.history_list.item(row).clone())
-        def restore(item):
-            self.restore_history_item(item)
-            dialog.accept()
-        recent.itemClicked.connect(restore)
-        layout.addWidget(QLabel("Choose a text to restore it to the editor."))
-        layout.addWidget(recent)
+        from .history_dialog import HistoryDialog
+        dialog = HistoryDialog(self.history.recent(HistoryStore.MAX_ITEMS), self)
+        def restore(text):
+            self.input.setPlainText(text)
+            self.status.setText("Saved text restored. Prepare listening when you are ready.")
+        dialog.passage_selected.connect(restore)
         dialog.exec()
 
     def clear_form(self):
