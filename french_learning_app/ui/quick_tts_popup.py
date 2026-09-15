@@ -1,4 +1,5 @@
 from pathlib import Path
+from threading import Event
 
 from PySide6.QtCore import QObject, QRunnable, QSettings, QThreadPool, QTimer, Qt, QUrl, Signal, Slot
 from PySide6.QtGui import QKeySequence, QShortcut, QTextCursor
@@ -12,25 +13,30 @@ from ..services.tts_manager import TTSManager
 
 
 class QuickTTSWorkerSignals(QObject):
-    finished = Signal(object)
+    finished = Signal(int, object)
 
 
 class QuickTTSWorker(QRunnable):
-    def __init__(self, manager: TTSManager, model: str, voice: str, text: str, speed: float):
+    def __init__(self, manager: TTSManager, model: str, voice: str, text: str, speed: float, request_id: int = 0):
         super().__init__()
         self.manager, self.model, self.voice = manager, model, voice
         self.text, self.speed = text, speed
+        self.request_id = request_id
+        self.cancelled = Event()
         self.signals = QuickTTSWorkerSignals()
 
     @Slot()
     def run(self):
+        if self.cancelled.is_set():
+            self.signals.finished.emit(self.request_id, TTSResult(message="Cancelled."))
+            return
         try:
             result = self.manager.synthesize(
                 self.model, self.voice, self.text, self.speed,
             )
         except Exception as exc:
             result = TTSResult(message=f"Quick TTS could not create audio: {exc}")
-        self.signals.finished.emit(result)
+        self.signals.finished.emit(self.request_id, result)
 
 
 class SupertonicWarmupWorker(QRunnable):
@@ -55,11 +61,14 @@ class QuickTTSMenuPanel(QWidget):
         self.manager = manager
         self.settings = QSettings("FrenchLearningApp", "French Learning App")
         self.thread_pool = QThreadPool(self)
+        self.thread_pool.setMaxThreadCount(1)
+        self._workers = {}
         self.player = QMediaPlayer(self)
         self.output = QAudioOutput(self)
         self.player.setAudioOutput(self.output)
         self.player.playbackStateChanged.connect(self._update_play_button)
         self.player.mediaStatusChanged.connect(self._on_media_status)
+        self.player.errorOccurred.connect(self._on_player_error)
         self._request_id = 0
         self._preparing = False
         self._text = ""
@@ -204,6 +213,7 @@ class QuickTTSMenuPanel(QWidget):
         return 1.0
 
     def show_text(self, text: str):
+        self.stop()
         self._text = text.strip()
         self.text_edit.setPlainText(self._text)
         self.text_edit.moveCursor(QTextCursor.Start)
@@ -258,11 +268,15 @@ class QuickTTSMenuPanel(QWidget):
         worker = QuickTTSWorker(
             self.manager, self.model.currentText(), self.voice.currentText(),
             self._text, self.selected_speed(),
+            request_id,
         )
-        worker.signals.finished.connect(lambda result: self._audio_ready(request_id, result))
+        self._workers[request_id] = worker
+        worker.signals.finished.connect(self._audio_ready, Qt.QueuedConnection)
         self.thread_pool.start(worker)
 
+    @Slot(int, object)
     def _audio_ready(self, request_id: int, result: TTSResult):
+        self._workers.pop(request_id, None)
         if request_id != self._request_id:
             return
         self._preparing = False
@@ -279,9 +293,17 @@ class QuickTTSMenuPanel(QWidget):
 
     def stop(self):
         self._request_id += 1
+        for worker in self._workers.values():
+            worker.cancelled.set()
         self._preparing = False
         self.player.stop()
         self.status.setText("Stopped.")
+        self._update_play_button()
+
+    @Slot(object, str)
+    def _on_player_error(self, error, message):
+        self._preparing = False
+        self.status.setText(message or "Audio playback failed. Try another voice.")
         self._update_play_button()
 
     def _on_media_status(self, status):
@@ -303,4 +325,5 @@ class QuickTTSMenuPanel(QWidget):
     def release_resources(self):
         """Release cached in-memory engine objects during application quit."""
         self.stop()
+        self.thread_pool.waitForDone()
         self.manager.release_loaded_models()

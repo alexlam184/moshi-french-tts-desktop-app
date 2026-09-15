@@ -1,18 +1,21 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import Mock, patch
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread, Slot
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from french_learning_app.services.audio_cache import AudioCache
 from french_learning_app.services.quick_tts_ipc import socket_name
 from french_learning_app.services.settings import AppSettings
 from french_learning_app.services.tts_manager import TTSManager
-from french_learning_app.ui.quick_tts_popup import QuickTTSMenuPanel
+from french_learning_app.ui.quick_tts_popup import QuickTTSMenuPanel, QuickTTSWorker
+from french_learning_app.services.tts import SystemEngine, TTSResult
 
 
 class QuickTTSTests(unittest.TestCase):
@@ -24,7 +27,7 @@ class QuickTTSTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             manager = TTSManager(AppSettings(), AudioCache(Path(temp_dir)))
 
-            self.assertEqual(manager.models(), ["Supertonic HD", "Piper"])
+            self.assertEqual(manager.models(), ["Supertonic HD", "Piper", "System / Browser TTS"])
             self.assertEqual(manager.voices_for("Supertonic HD")[0], "F1")
             self.assertEqual(manager.voices_for("Piper"), ["Configure Piper in Settings"])
 
@@ -81,3 +84,46 @@ class QuickTTSTests(unittest.TestCase):
 
     def test_ipc_name_is_user_scoped(self):
         self.assertTrue(socket_name().startswith("FrenchLearningAppQuickTTS-"))
+
+    def test_system_model_uses_native_engine_and_default_voice(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manager = TTSManager(AppSettings(), AudioCache(Path(directory)))
+            with patch.object(SystemEngine, "available_voices", return_value=[]):
+                self.assertEqual(manager.voices_for(manager.SYSTEM_MODEL), ["System default"])
+            engine = manager._engine_for(manager.SYSTEM_MODEL, "System default")
+            self.assertIsInstance(engine, SystemEngine)
+            self.assertEqual(engine.voice, "")
+
+    def test_cancelled_queued_worker_does_not_synthesize(self):
+        manager = Mock()
+        worker = QuickTTSWorker(manager, "Piper", "voice", "Bonjour", 1.0)
+        worker.cancelled.set()
+        worker.run()
+        manager.synthesize.assert_not_called()
+
+    def test_worker_completion_runs_on_ui_thread_and_stale_result_is_ignored(self):
+        class Panel(QuickTTSMenuPanel):
+            completion_thread = None
+
+            @Slot(int, object)
+            def _audio_ready(self, request_id, result):
+                self.completion_thread = QThread.currentThread()
+                super()._audio_ready(request_id, result)
+
+        with tempfile.TemporaryDirectory() as directory:
+            manager = TTSManager(AppSettings(), AudioCache(Path(directory)))
+            manager.synthesize = Mock(return_value=TTSResult(message="Test completion"))
+            panel = Panel(manager)
+            panel.show_text("Bonjour")
+            panel.play()
+            panel.thread_pool.waitForDone()
+            for _ in range(20):
+                QTest.qWait(10)
+                if panel.completion_thread is not None:
+                    break
+            self.assertEqual(panel.completion_thread, self.app.thread())
+            self.assertFalse(panel._workers)
+            panel.stop()
+            panel._audio_ready(panel._request_id - 1, TTSResult(message="Stale"))
+            self.assertEqual(panel.status.text(), "Stopped.")
+            panel.release_resources()
