@@ -102,10 +102,21 @@ Then create the macOS right-click service once:
 4. Save it as **Speak French**.
 
 You can now select French text in another macOS app, right-click it, choose
-**Services → Speak French**, and use the menu-bar player. It offers Supertonic HD
-and Piper, keeps a separate remembered voice for each model, defaults to Supertonic HD at
+**Services → Speak French**, and use the menu-bar player. It offers Supertonic HD,
+Piper, and **System / Browser TTS**, keeps a separate remembered voice for each model, defaults to Supertonic HD at
 1.0×, and provides exactly 0.5×, 0.75×, 1.0×, and 1.25× speeds. Press **Space** to
 play/stop and **Esc** or **Command-W** to close the menu.
+
+System / Browser TTS uses native macOS `say` or Windows System.Speech voices in this
+desktop app (not a browser Web Speech API). It needs no API key or neural model
+download; available voices depend on those installed in your operating system.
+The menu player lists installed French voices on macOS and installed speech voices
+on Windows, with a system-default fallback.
+
+Menu audio results are delivered on the Qt UI thread. Generation is serialized;
+Stop or closing the panel cancels queued requests and ignores an already-running
+request's result. Quitting waits for active generation/model loading to finish
+before releasing engines, so quitting during a first-time download can take longer.
 
 When the main window is closed it hides to the menu bar. Use the menu-bar icon for
 the Quick TTS player, **Open Main Window**, or **Quit**.
