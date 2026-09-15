@@ -38,13 +38,24 @@ def main(argv: list[str] | None = None) -> int:
     window = MainWindow()
     window.set_close_to_tray(True)
     data_dir = app_data_dir()
-    quick_panel = QuickTTSMenuPanel(TTSManager(SettingsStore(data_dir).load(), AudioCache(data_dir)))
+    audio_cache = AudioCache(data_dir)
+    quick_panel = QuickTTSMenuPanel(TTSManager(SettingsStore(data_dir).load(), audio_cache))
     ipc = QuickTTSIPC(app)
     if not ipc.start():
         # Another process owns the local app socket.  Do not create a second
         # copy, even if it is an older app version that cannot acknowledge an
         # activation request.
         return 0
+
+    # A previous crash cannot run cleanup code, so remove any audio it left
+    # behind once this process has confirmed it is the single app instance.
+    audio_cache.clear()
+
+    def clear_cache_on_exit():
+        audio_cache.clear()
+
+    # Covers the tray Quit action and any other normal application shutdown.
+    app.aboutToQuit.connect(clear_cache_on_exit)
 
     tray = QSystemTrayIcon(app_icon, app)
     tray.setToolTip("Moshi French TTS")
@@ -99,9 +110,6 @@ def main(argv: list[str] | None = None) -> int:
     def quit_app():
         window.set_close_to_tray(False)
         quick_panel.release_resources()
-        # Generated speech is a convenience cache, not a permanent library.
-        # Stop players first, then remove cache files during an intentional quit.
-        AudioCache(data_dir).clear()
         tray.hide()
         app.quit()
 
