@@ -103,13 +103,14 @@ Then create the macOS right-click service once:
 
 You can now select French text in another macOS app, right-click it, choose
 **Services → Speak French**, and use the menu-bar player. It offers Supertonic HD,
-Piper, and **System / Browser TTS**, keeps a separate remembered voice for each model, defaults to Supertonic HD at
+Piper, and **System / Browser TTS**, keeps a separate remembered voice for each model, defaults to System / Browser TTS at
 1.0×, and provides exactly 0.5×, 0.75×, 1.0×, and 1.25× speeds. Press **Space** to
 play/stop and **Esc** or **Command-W** to close the menu.
 
 System / Browser TTS uses native macOS `say` or Windows System.Speech voices in this
 desktop app (not a browser Web Speech API). It needs no API key or neural model
 download; available voices depend on those installed in your operating system.
+Supertonic is only preloaded at startup when it is the selected menu-bar model.
 The menu player lists installed French voices on macOS and installed speech voices
 on Windows, with a system-default fallback.
 
