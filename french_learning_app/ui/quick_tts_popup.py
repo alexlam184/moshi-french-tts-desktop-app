@@ -78,6 +78,8 @@ class QuickTTSMenuPanel(QWidget):
 
     def warm_supertonic(self):
         """Begin background model loading after the application has started."""
+        if self.model.currentText() != TTSManager.SUPERTONIC_MODEL:
+            return
         # The initial model download/load can take time, but later Play presses
         # reuse the in-memory engine and do not block the interface.
         self.thread_pool.start(SupertonicWarmupWorker(self.manager))
@@ -179,8 +181,8 @@ class QuickTTSMenuPanel(QWidget):
         close_shortcut.activated.connect(self.close_requested)
 
     def _restore_settings(self):
-        model = self.settings.value("quickTts/model", TTSManager.SUPERTONIC_MODEL, type=str)
-        self.model.setCurrentText(model if model in self.manager.models() else TTSManager.SUPERTONIC_MODEL)
+        model = self.settings.value("quickTts/model", TTSManager.SYSTEM_MODEL, type=str)
+        self.model.setCurrentText(model if model in self.manager.models() else TTSManager.SYSTEM_MODEL)
         speed = float(self.settings.value("quickTts/speed", 1.0))
         self.speed_buttons[min(self.speed_buttons, key=lambda option: abs(option - speed))].setChecked(True)
         self._model_changed(self.model.currentText())

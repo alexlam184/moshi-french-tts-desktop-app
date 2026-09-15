@@ -94,6 +94,20 @@ class QuickTTSTests(unittest.TestCase):
             self.assertIsInstance(engine, SystemEngine)
             self.assertEqual(engine.voice, "")
 
+    def test_menu_defaults_to_system_without_neural_preload(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manager = TTSManager(AppSettings(), AudioCache(Path(directory)))
+            with patch.object(SystemEngine, "available_voices", return_value=["French voice"]):
+                panel = QuickTTSMenuPanel(manager)
+                panel.settings = Mock()
+                panel.settings.value.side_effect = lambda key, default, **kwargs: default
+                panel._restore_settings()
+                self.assertEqual(panel.model.currentText(), TTSManager.SYSTEM_MODEL)
+                self.assertEqual(panel.selected_speed(), 1.0)
+                with patch.object(panel.thread_pool, "start") as start:
+                    panel.warm_supertonic()
+                    start.assert_not_called()
+
     def test_cancelled_queued_worker_does_not_synthesize(self):
         manager = Mock()
         worker = QuickTTSWorker(manager, "Piper", "voice", "Bonjour", 1.0)
