@@ -487,6 +487,8 @@ class MainWindow(QMainWindow):
             self.input.setFocus()
             return
         self.player.stop()
+        self.cache.clear()
+        self.refresh_cache_summary()
         self.play_queue = []
         self._clear_word_highlight()
         self._reset_hover_state()
@@ -712,6 +714,13 @@ class MainWindow(QMainWindow):
         if source == "hover_loop":
             self._hover_worker_active = False
         if request_id != self._request_id:
+            # Preparing new text invalidates older synthesis. If an obsolete
+            # worker completed after the cache was cleared, remove its output.
+            if result.audio_path:
+                try:
+                    result.audio_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
             if self._pending_hover:
                 self.hover_timer.start()
             return
