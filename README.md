@@ -50,6 +50,25 @@ python -m french_learning_app
 
 If PowerShell blocks activation, run `Set-ExecutionPolicy -Scope Process Bypass` and try again.
 
+## Build a macOS app
+
+On a Mac, build a normal double-clickable app bundle from the project folder:
+
+```bash
+source .venv/bin/activate
+pip install '.[macos-build]'
+./scripts/build_macos_app.sh
+```
+
+This creates [Moshi French TTS.app](dist/Moshi%20French%20TTS.app) in `dist/`.
+Drag it to `/Applications` and open it as a standard macOS app. The app is
+ad-hoc signed for local use. To distribute it to other people without macOS
+Gatekeeper warnings, sign it with an Apple Developer ID and notarize it.
+
+The default macOS build does not bundle downloaded Piper voices or Supertonic
+model data; they are installed/downloaded into your user data location after
+the app starts. System / Browser TTS works immediately with macOS voices.
+
 ## Optional Piper setup
 
 Install Piper and a French voice model, then set **Piper executable** and **Piper voice model** in Settings. The app invokes Piper with `--output_file`; its synthesized WAV result is stored in the local cache and played by the app. If Piper is not configured, the app keeps running and explains what is missing.
@@ -100,6 +119,10 @@ Then create the macOS right-click service once:
    of macos/automator-speak-french.sh after replacing PROJECT_DIR with this project’s
    full path.
 4. Save it as **Speak French**.
+
+For the installed `.app`, use `macos/automator-speak-french-app.sh` instead.
+It launches `/Applications/Moshi French TTS.app` if needed and forwards selected
+text to the existing app if it is already running.
 
 You can now select French text in another macOS app, right-click it, choose
 **Services → Speak French**, and use the menu-bar player. It offers Supertonic HD,
