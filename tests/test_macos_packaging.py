@@ -17,6 +17,14 @@ class MacOSPackagingTests(unittest.TestCase):
         self.assertIn("--collect-all supertonic", source)
         self.assertIn("--collect-all piper", source)
         self.assertNotIn("piper_phonemize", source)
+        self.assertIn("packaging/macos/app_entry.py", source)
+        self.assertIn('ICONSET_DIR="$ICON_TEMP_DIR/moshi_french_tts.iconset"', source)
+
+    def test_macos_bundle_entry_imports_the_app_as_a_package(self):
+        entry = (PROJECT_ROOT / "packaging" / "macos" / "app_entry.py").read_text()
+
+        self.assertIn("from french_learning_app.app import main", entry)
+        self.assertNotIn("from .app", entry)
 
     def test_installed_app_service_launches_the_app_bundle(self):
         service = (PROJECT_ROOT / "macos" / "automator-speak-french-app.sh").read_text()

@@ -13,11 +13,12 @@ PROJECT_DIR="${0:A:h:h}"
 PYTHON_BIN="${PYTHON_BIN:-$PROJECT_DIR/.venv/bin/python}"
 APP_NAME="Moshi French TTS"
 DIST_APP="$PROJECT_DIR/dist/$APP_NAME.app"
-ICONSET_DIR="$(mktemp -d "${TMPDIR:-/tmp}/moshi-icon.XXXXXX.iconset")"
+ICON_TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/moshi-icon.XXXXXX")"
+ICONSET_DIR="$ICON_TEMP_DIR/moshi_french_tts.iconset"
 ICON_PATH="$PROJECT_DIR/build/moshi_french_tts.icns"
 
 cleanup() {
-  rm -rf "$ICONSET_DIR"
+  rm -rf "$ICON_TEMP_DIR"
 }
 trap cleanup EXIT
 
@@ -34,6 +35,7 @@ if ! "$PYTHON_BIN" -c 'import PyInstaller' 2>/dev/null; then
 fi
 
 mkdir -p "$PROJECT_DIR/build"
+mkdir "$ICONSET_DIR"
 for size in 16 32 128 256 512; do
   sips -z "$size" "$size" "$PROJECT_DIR/french_learning_app/assets/moshi_french_tts_logo.png" \
     --out "$ICONSET_DIR/icon_${size}x${size}.png" >/dev/null
@@ -58,7 +60,7 @@ iconutil -c icns "$ICONSET_DIR" -o "$ICON_PATH"
   --distpath "$PROJECT_DIR/dist" \
   --workpath "$PROJECT_DIR/build/pyinstaller" \
   --specpath "$PROJECT_DIR/build" \
-  "$PROJECT_DIR/french_learning_app/__main__.py"
+  "$PROJECT_DIR/packaging/macos/app_entry.py"
 
 if [[ ! -d "$DIST_APP" ]]; then
   print -u2 "PyInstaller did not create the expected app bundle: $DIST_APP"
